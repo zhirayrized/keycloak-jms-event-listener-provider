@@ -42,7 +42,7 @@ public class EventProducer {
         sendEvent(event, adminEventDestinationTopic);
     }
 
-    private void sendEvent(final Object payload, Topic topic) {
+    private void sendEvent(final Object payload, final Topic topic) {
         try (Connection connection = connectionFactory.createConnection();
              Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE)) {
 

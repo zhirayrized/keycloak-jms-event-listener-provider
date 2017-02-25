@@ -66,7 +66,7 @@ public class EventProducer {
             message.setStringProperty("BODY", new Gson().toJson(payload));
             session.createProducer(topic).send(message);
         } catch (JMSException e) {
-            e.printStackTrace();
+            logger.error(e);
         }
     }
 

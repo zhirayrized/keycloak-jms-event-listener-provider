@@ -1,6 +1,7 @@
 package com.github.zhirayrized.keycloak.events.jms;
 
 import com.google.gson.Gson;
+import org.jboss.logging.Logger;
 import org.keycloak.events.Event;
 import org.keycloak.events.admin.AdminEvent;
 
@@ -8,11 +9,16 @@ import javax.jms.*;
 import javax.naming.Context;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Properties;
 
 /**
  * @author Zhirayr Kazarosyan
  */
 public class EventProducer {
+    private static final Logger logger = Logger.getLogger(EventProducer.class);
+
     private final TopicConnectionFactory connectionFactory;
 
     private final Topic eventDestinationTopic;
@@ -21,10 +27,19 @@ public class EventProducer {
 
     public EventProducer() {
         try {
+            Properties properties = new Properties();
+            try(InputStream input = EventProducer.class.getClassLoader().getResourceAsStream("config.properties")) {
+                properties.load(input);
+            } catch (IOException e) {
+                logger.warn("Could not load properties from config.properties. Falling back to default properties {}", e);
+                properties.setProperty("keycloak.jms.jndi.connection_factory", "java:/jms/KeycloakBusConnectionFactory");
+                properties.setProperty("keycloak.jms.jndi.topic.events", "java:/jms/topic/KeycloakEvents");
+                properties.setProperty("keycloak.jms.jndi.topic.admin_events", "java:/jms/topic/KeycloakAdminEvents");
+            }
             Context ctx = new InitialContext();
-            this.connectionFactory = (TopicConnectionFactory) ctx.lookup("java:/jms/KeycloakBusConnectionFactory");
-            this.eventDestinationTopic = (Topic) ctx.lookup("java:/jms/topic/KeycloakEvents");
-            this.adminEventDestinationTopic = (Topic) ctx.lookup("java:/jms/topic/KeycloakAdminEvents");
+            this.connectionFactory = (TopicConnectionFactory) ctx.lookup(properties.getProperty("keycloak.jms.jndi.connection_factory"));
+            this.eventDestinationTopic = (Topic) ctx.lookup(properties.getProperty("keycloak.jms.jndi.topic.events"));
+            this.adminEventDestinationTopic = (Topic) ctx.lookup(properties.getProperty("keycloak.jms.jndi.topic.admin_events"));
         } catch (NamingException e) {
             throw new RuntimeException(e);
         }
